@@ -15,12 +15,11 @@ const userSchema = new Schema ({
         required: true,
         default: 'https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg'
     },
-    posts: {
-        type: Array,
+    isOnline: {
+        type: Boolean,
         required: false,
-        default: []
+        default: false
     }
-
 })
 
 const user = mongoose.model('users', userSchema);

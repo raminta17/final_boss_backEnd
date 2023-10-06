@@ -3,6 +3,7 @@ const resSend = (res, error, data, message) => {
 }
 
 const userDb = require('../schemas/userSchema');
+const postDb = require('../schemas/postSchema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -59,5 +60,15 @@ module.exports = {
             {new: true}
         )
         resSend(res, false, null, 'Password changed successfully.');
+    },
+    getAllPosts: async (req,res) => {
+        const allPosts = await postDb.find();
+        resSend(res, false, allPosts, 'Sending all posts from fetch');
+    },
+    getPostAuthor: async (req,res) => {
+        const {id} = req.params;
+        const author = await userDb.findOne({_id: id}, {password:0, socketId:0})
+        console.log('author', author);
+        resSend(res, false, author, 'Sending post author info through fetch');
     }
 }

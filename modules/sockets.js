@@ -25,13 +25,7 @@ module.exports = (server) => {
             let connectedUser = await userDb.findOneAndUpdate({_id: data.id},
                 {$set: {isOnline: true}},
                 {new: true});
-            const existingConnectedUser = connectedUsers.find(user => user.userId === data.id);
-            socketLog(socket.id, 'existing user', existingConnectedUser);
-            if (existingConnectedUser) {
-                existingConnectedUser.socketId = socket.id;
-            } else {
-                connectedUsers.push({userId: connectedUser._id, socketId: socket.id})
-            }
+            connectedUsers.push({userId: connectedUser._id, socketId: socket.id, username: connectedUser.username})
             socketLog(socket.id, 'all connected users list', connectedUsers);
             const allDbUsers = await userDb.find({}, {password: 0});
             socketLog(socket.id, 'all users from db', allDbUsers);
@@ -55,7 +49,7 @@ module.exports = (server) => {
                 socketLog(socket.id, 'error while saving post to Db', e);
             })
 
-        })
+        });
         socket.on('handleLike', async (postId, userWhoLikedId) => {
             socketLog(socket.id, 'getting like request: post id', postId);
             socketLog(socket.id, 'user who liked post id', userWhoLikedId);
@@ -74,7 +68,7 @@ module.exports = (server) => {
             const allPosts = await postDb.find();
             socketLog(socket.id, 'all posts after update single one', allPosts);
             io.emit('updatingPost', allPosts, likedPost);
-        })
+        });
         socket.on('sendComment', async (comment, postId, commentatorId) => {
             socketLog(socket.id, 'komentaras', comment);
             socketLog(socket.id, 'post id that was commented on', postId);
@@ -87,36 +81,40 @@ module.exports = (server) => {
             const allPosts = await postDb.find();
             socketLog(socket.id, 'all posts after update single one', allPosts);
             io.emit('updatingPost', allPosts, postCommented);
-        })
-        socket.on('sendingMessage', async (message, receiverId) => {
+        });
+        socket.on('sendingMessage', async (message, receiverUsername, conversationId) => {
             socketLog(socket.id, 'sending new message', message);
-            socketLog(socket.id, 'message sent to user id : ', receiverId);
+            socketLog(socket.id, 'message sent to user id : ', receiverUsername);
+            socketLog(socket.id, 'message sent to this conversation id ', conversationId);
             socketLog(socket.id, 'all connected users back end list ', connectedUsers);
             let userWhoSentAMessage = connectedUsers.find(user => user.socketId === socket.id);
-            if(userWhoSentAMessage) userWhoSentAMessage = await userDb.findOne({_id: userWhoSentAMessage.userId});
-            let receiver = await userDb.findOne({_id: receiverId});
+            if (userWhoSentAMessage) userWhoSentAMessage = await userDb.findOne({_id: userWhoSentAMessage.userId});
+            let receiver = await userDb.findOne({username: receiverUsername});
+            let currentdate = new Date();
+            let datetime = currentdate.getDate() + "/"
+                + (currentdate.getMonth() + 1) + " "
+                + currentdate.getHours() + ":"
+                + currentdate.getMinutes()
             const newMessage = {
-                from: userWhoSentAMessage.username,
-                to: receiver.username,
+                username: userWhoSentAMessage.username,
                 message: message,
-                time: new Date()
+                time: datetime
             }
-            ////////////////////////////////// TO DO it doesnt find my connected user even thought its on the list of connectedUsers////
-            const connectedReceiver = connectedUsers.find(user => user.userId === receiverId);
+            const connectedReceiver = connectedUsers.find(user => user.username === receiver.username);
             socketLog(socket.id, 'connected receiver', connectedReceiver);
             let allConversations = await chatDb.find();
-            let findConversation = allConversations.find(conversation => conversation.users.includes(receiverId) && conversation.users.includes(userWhoSentAMessage._id))
+            let findConversation = allConversations.find(conversation => conversation.users.includes(receiver.username) && conversation.users.includes(userWhoSentAMessage.username))
             socketLog(socket.id, 'conversation found in db: ', findConversation);
-            if(findConversation) {
+            if (findConversation) {
                 findConversation = await chatDb.findOneAndUpdate({_id: findConversation._id},
                     {$push: {messages: newMessage}},
-                    {new:true})
+                    {new: true})
                 socketLog(socket.id, 'updated conversation in db: ', findConversation);
-                connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('sending new message', newMessage) :
-                    io.to(socket.id).emit('sending new message', newMessage);
-            }else {
+                connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('new message in existing conversation', findConversation._id, newMessage) :
+                    io.to(socket.id).emit('sending new message', findConversation._id, newMessage);
+            } else {
                 const newConversation = new chatDb({
-                    users: [receiverId, userWhoSentAMessage._id],
+                    users: [receiver.username, userWhoSentAMessage.username],
                     messages: [newMessage],
                 });
                 socketLog(socket.id, 'conversation in db', newConversation);
@@ -124,15 +122,18 @@ module.exports = (server) => {
                     socketLog(socket.id, 'conversation added to Db');
                     allConversations = await chatDb.find();
                     socketLog(socket.id, 'all conversations from Db', allConversations);
-                    connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('sending new message', newMessage) :
-                    io.to(socket.id).emit('sending new conversation', allConversations, newConversation);
+                    connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('sending new conversation', newConversation, newMessage) :
+                        io.to(socket.id).emit('sending new conversation', newConversation, newMessage);
                 }).catch(e => {
                     socketLog(socket.id, 'error while saving conversation to Db', e);
                 })
             }
-
-
-        })
+        });
+        socket.on('openConversation', async conversationId => {
+            const findConversation = await chatDb.findOne({_id: conversationId});
+            socketLog(socket.id, 'conversation from db that was requested in front end', findConversation);
+            io.to(socket.id).emit('sendingSelectedConversation', findConversation);
+        });
         socket.on('disconnect', async () => {
             socketLog(socket.id, 'user disconnected');
             let disconnectedUser = connectedUsers.find(user => user.socketId === socket.id);
@@ -143,7 +144,7 @@ module.exports = (server) => {
             connectedUsers = connectedUsers.filter(user => user.socketId !== socket.id);
             users = await userDb.find({}, {password: 0});
             io.emit('sendingAllUsers', users);
-        })
-    })
+        });
+    });
 
 }

@@ -11,7 +11,8 @@ const {register,
     updateImg,
     changePassword,
     getAllPosts,
-    getPostAuthor
+    getPostAuthor,
+    getAllConversations
    } = require('../controllers/mainControllers')
 
 
@@ -22,6 +23,7 @@ router.post('/updateImg', validateToken, updateImg);
 router.post('/changePassword', validateToken, validatePassChange, changePassword);
 router.get('/getAllPosts', getAllPosts);
 router.get('/getPostAuthor/:id', getPostAuthor);
+router.get('/getAllConversations/:username', getAllConversations);
 
 
 module.exports = router;

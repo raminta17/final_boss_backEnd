@@ -4,6 +4,7 @@ const resSend = (res, error, data, message) => {
 
 const userDb = require('../schemas/userSchema');
 const postDb = require('../schemas/postSchema');
+const chatDb = require('../schemas/chatSchema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -70,5 +71,12 @@ module.exports = {
         const author = await userDb.findOne({_id: id}, {password:0, socketId:0})
         console.log('author', author);
         resSend(res, false, author, 'Sending post author info through fetch');
+    },
+    getAllConversations: async (req,res) => {
+        console.log('should be logged user db username',req.params);
+        const {username} = req.params;
+        const allConversations = await chatDb.find({users: username});
+        console.log('allConversations found with user', allConversations);
+        resSend(res, false, allConversations, 'Sending all conversations');
     }
 }

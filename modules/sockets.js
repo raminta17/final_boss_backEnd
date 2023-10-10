@@ -75,7 +75,7 @@ module.exports = (server) => {
             socketLog(socket.id, 'commentator ID ', commentatorId);
             const commentator = await userDb.findOne({_id: commentatorId});
             const postCommented = await postDb.findOneAndUpdate({_id: postId},
-                {$push: {comments: {user: commentator.username, comment: comment}}},
+                {$push: {comments: {username: commentator.username, message: comment}}},
                 {new: true})
             socketLog(socket.id, 'commented post after update ', postCommented);
             const allPosts = await postDb.find();

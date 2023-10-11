@@ -111,7 +111,7 @@ module.exports = (server) => {
                     {new: true})
                 socketLog(socket.id, 'updated conversation in db: ', findConversation);
                 connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('new message in existing conversation', findConversation._id, newMessage) :
-                    io.to(socket.id).emit('sending new message', findConversation._id, newMessage);
+                    io.to(socket.id).emit('new message in existing conversation', findConversation._id, newMessage);
             } else {
                 const newConversation = new chatDb({
                     users: [receiver.username, userWhoSentAMessage.username],
@@ -129,7 +129,7 @@ module.exports = (server) => {
                 })
             }
         });
-        socket.on('openConversation', async conversationId => {
+        socket.on('startConversation', async conversationId => {
             const findConversation = await chatDb.findOne({_id: conversationId});
             socketLog(socket.id, 'conversation from db that was requested in front end', findConversation);
             io.to(socket.id).emit('sendingSelectedConversation', findConversation);

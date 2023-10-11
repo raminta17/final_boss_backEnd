@@ -75,8 +75,23 @@ module.exports = {
     getAllConversations: async (req,res) => {
         console.log('should be logged user db username',req.params);
         const {username} = req.params;
-        const allConversations = await chatDb.find({users: username});
+        let allConversations = await chatDb.find({users: username});
         console.log('allConversations found with user', allConversations);
+        allConversations = await Promise.all(allConversations.map(async (conversation) => {
+            let name = conversation.users.filter(user => user !== username)[0];
+            console.log('found other user name in conversation',name);
+            const searchUser = await userDb.findOne({username: name});
+            console.log('user found from user db',searchUser);
+            const conversationObj = {
+                username: name,
+                profileImg: searchUser.profileImg,
+                isOnline: searchUser.isOnline,
+                conversationId: conversation._id
+            }
+            console.log('conversationObj', conversationObj);
+            return conversationObj;
+        }))
+        console.log('allConversations after filter should be array of objects', allConversations)
         resSend(res, false, allConversations, 'Sending all conversations');
     }
 }

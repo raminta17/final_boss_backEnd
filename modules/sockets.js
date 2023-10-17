@@ -27,9 +27,11 @@ module.exports = (server) => {
                 {new: true});
             connectedUsers.push({userId: connectedUser._id, socketId: socket.id, username: connectedUser.username})
             socketLog(socket.id, 'all connected users list', connectedUsers);
+            connectedUser = await userDb.findOne({_id:data.id}, {password:0});
             const allDbUsers = await userDb.find({}, {password: 0});
             socketLog(socket.id, 'all users from db', allDbUsers);
-            io.emit('sendingAllUsers', allDbUsers);
+            io.to(socket.id).emit('sendingAllUsers', allDbUsers);
+            socket.broadcast.emit('sendingConnectionUpdate', connectedUser);
         } catch (err) {
             socketLog(socket.id, 'verification error in sockets', err);
         }
@@ -142,8 +144,8 @@ module.exports = (server) => {
                 {new: true});
             socketLog(socket.id, 'disconnectedUser after update', disconnectedUser);
             connectedUsers = connectedUsers.filter(user => user.socketId !== socket.id);
-            users = await userDb.find({}, {password: 0});
-            io.emit('sendingAllUsers', users);
+            disconnectedUser = await userDb.findOne({_id: disconnectedUser._id}, {password:0})
+            io.emit('sendingConnectionUpdate', disconnectedUser)
         });
     });
 

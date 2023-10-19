@@ -96,7 +96,7 @@ module.exports = (server) => {
             let datetime = currentdate.getDate() + "/"
                 + (currentdate.getMonth() + 1) + " "
                 + currentdate.getHours() + ":"
-                + currentdate.getMinutes()
+                + currentdate.getMinutes().toString().padStart(2, '0');
             const newMessage = {
                 username: userWhoSentAMessage.username,
                 message: message,

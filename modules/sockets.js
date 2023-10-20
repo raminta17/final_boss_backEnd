@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const userDb = require('../schemas/userSchema');
 const postDb = require('../schemas/postSchema');
 const chatDb = require('../schemas/chatSchema');
-let users = [];
 let connectedUsers = [];
 
 function socketLog(socketId, message, data) {
@@ -28,13 +27,28 @@ module.exports = (server) => {
             connectedUsers.push({userId: connectedUser._id, socketId: socket.id, username: connectedUser.username})
             socketLog(socket.id, 'all connected users list', connectedUsers);
             connectedUser = await userDb.findOne({_id:data.id}, {password:0});
-            const allDbUsers = await userDb.find({}, {password: 0});
+            let allDbUsers = await userDb.find({}, {password: 0});
+            allDbUsers.forEach(dbUser => {
+                if (connectedUsers.some(user => user.username === dbUser.username)) {
+                    dbUser.isOnline = true;
+                } else {
+                    dbUser.isOnline = false;
+                }
+            });
             socketLog(socket.id, 'all users from db', allDbUsers);
             io.to(socket.id).emit('sendingAllUsers', allDbUsers);
-            socket.broadcast.emit('sendingConnectionUpdate', connectedUser);
+            socket.broadcast.emit('sendingUserUpdate', connectedUser);
         } catch (err) {
             socketLog(socket.id, 'verification error in sockets', err);
-        }
+        };
+        socket.on('updatePhoto', async img => {
+            let user = connectedUsers.find(user => user.socketId === socket.id);
+            user = await userDb.findOneAndUpdate(
+                {_id: user.userId},
+                {$set: {profileImg: img}},
+                {new: true});
+            socket.broadcast.emit('sendingUserUpdate', user);
+        });
         socket.on('creatingNewPost', async newPost => {
             socketLog(socket.id, 'socekt id who send post', socket.id)
             socketLog(socket.id, 'newPost', newPost);
@@ -144,8 +158,8 @@ module.exports = (server) => {
                 {new: true});
             socketLog(socket.id, 'disconnectedUser after update', disconnectedUser);
             connectedUsers = connectedUsers.filter(user => user.socketId !== socket.id);
-            disconnectedUser = await userDb.findOne({_id: disconnectedUser._id}, {password:0})
-            io.emit('sendingConnectionUpdate', disconnectedUser)
+            disconnectedUser = await userDb.findOne({_id: disconnectedUser._id}, {password:0});
+            io.emit('sendingUserUpdate', disconnectedUser);
         });
     });
 

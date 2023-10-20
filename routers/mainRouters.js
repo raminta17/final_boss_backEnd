@@ -19,7 +19,7 @@ const {register,
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
 router.get('/getUserInfo', validateToken, getUserInfo);
-router.post('/updateImg', validateToken, updateImg);
+// router.post('/updateImg', validateToken, updateImg);
 router.post('/changePassword', validateToken, validatePassChange, changePassword);
 router.get('/getAllPosts', getAllPosts);
 router.get('/getPostAuthor/:id', getPostAuthor);

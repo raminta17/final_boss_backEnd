@@ -42,16 +42,16 @@ module.exports = {
         const findUser = await userDb.findOne({username}, {password: 0});
         resSend(res, false, findUser, 'fetching user info');
     },
-    updateImg: async (req, res) => {
-        const {username} = req.user;
-        const {newImg} = req.body;
-        const updateUser = await userDb.findOneAndUpdate(
-            {username},
-            {$set: {profileImg: newImg}},
-            {new: true}
-        )
-        resSend(res, false, updateUser.profileImg, 'updating photo');
-    },
+    // updateImg: async (req, res) => {
+    //     const {username} = req.user;
+    //     const {newImg} = req.body;
+    //     const updateUser = await userDb.findOneAndUpdate(
+    //         {username},
+    //         {$set: {profileImg: newImg}},
+    //         {new: true}
+    //     )
+    //     resSend(res, false, updateUser.profileImg, 'updating photo');
+    // },
     changePassword: async (req, res) => {
         const {username} = req.user;
         const {newPass} = req.body;
@@ -63,7 +63,8 @@ module.exports = {
         resSend(res, false, null, 'Password changed successfully.');
     },
     getAllPosts: async (req,res) => {
-        const allPosts = await postDb.find();
+        let allPosts = await postDb.find();
+        allPosts = allPosts.slice().sort((post1,post2) => (post2.time - post1.time));
         resSend(res, false, allPosts, 'Sending all posts from fetch');
     },
     getPostAuthor: async (req,res) => {

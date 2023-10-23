@@ -25,19 +25,38 @@ module.exports = (server) => {
                 {$set: {isOnline: true}},
                 {new: true});
             connectedUsers.push({userId: connectedUser._id, socketId: socket.id, username: connectedUser.username})
-            socketLog(socket.id, 'all connected users list', connectedUsers);
+            // socketLog(socket.id, 'all connected users list', connectedUsers);
             connectedUser = await userDb.findOne({_id:data.id}, {password:0});
+            let user;
+            if(connectedUser) user =  { ...connectedUser._doc, smth: 'haha' };
+            console.log('connectedUser',user)
             let allDbUsers = await userDb.find({}, {password: 0});
             allDbUsers.forEach(dbUser => {
+                let isOnline;
                 if (connectedUsers.some(user => user.username === dbUser.username)) {
-                    dbUser.isOnline = true;
+                    isOnline = true;
                 } else {
-                    dbUser.isOnline = false;
+                    isOnline = false;
                 }
+                return {...dbUser._doc, isOnline: isOnline};
             });
-            socketLog(socket.id, 'all users from db', allDbUsers);
+            // console.log('allDbUsers on connection', allDbUsers);
+            allDbUsers = allDbUsers.sort((user1,user2) => user2.isOnline - user1.isOnline);
             io.to(socket.id).emit('sendingAllUsers', allDbUsers);
             socket.broadcast.emit('sendingUserUpdate', connectedUser);
+            let allConversations = await chatDb.find({users: connectedUser.username});
+            allConversations = await Promise.all(allConversations.map(async (conversation) => {
+                let name = conversation.users.filter(singleUser => singleUser !== connectedUser.username)[0];
+                const searchUser = await userDb.findOne({username: name});
+                const conversationObj = {
+                    username: name,
+                    profileImg: searchUser.profileImg,
+                    isOnline: connectedUsers.find(user=>user.username === name) ? true : false,
+                    conversationId: conversation._id
+                }
+                return conversationObj;
+            }));
+            io.to(socket.id).emit('sendingConversations', allConversations);
         } catch (err) {
             socketLog(socket.id, 'verification error in sockets', err);
         };

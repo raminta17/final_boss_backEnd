@@ -42,16 +42,6 @@ module.exports = {
         const findUser = await userDb.findOne({username}, {password: 0});
         resSend(res, false, findUser, 'fetching user info');
     },
-    // updateImg: async (req, res) => {
-    //     const {username} = req.user;
-    //     const {newImg} = req.body;
-    //     const updateUser = await userDb.findOneAndUpdate(
-    //         {username},
-    //         {$set: {profileImg: newImg}},
-    //         {new: true}
-    //     )
-    //     resSend(res, false, updateUser.profileImg, 'updating photo');
-    // },
     changePassword: async (req, res) => {
         const {username} = req.user;
         const {newPass} = req.body;
@@ -73,26 +63,4 @@ module.exports = {
         console.log('author', author);
         resSend(res, false, author, 'Sending post author info through fetch');
     },
-    getAllConversations: async (req,res) => {
-        console.log('should be logged user db username',req.params);
-        const {username} = req.params;
-        let allConversations = await chatDb.find({users: username});
-        console.log('allConversations found with user', allConversations);
-        allConversations = await Promise.all(allConversations.map(async (conversation) => {
-            let name = conversation.users.filter(user => user !== username)[0];
-            console.log('found other user name in conversation',name);
-            const searchUser = await userDb.findOne({username: name});
-            console.log('user found from user db',searchUser);
-            const conversationObj = {
-                username: name,
-                profileImg: searchUser.profileImg,
-                isOnline: searchUser.isOnline,
-                conversationId: conversation._id
-            }
-            console.log('conversationObj', conversationObj);
-            return conversationObj;
-        }))
-        console.log('allConversations after filter should be array of objects', allConversations)
-        resSend(res, false, allConversations, 'Sending all conversations');
-    }
 }

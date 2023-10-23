@@ -14,7 +14,8 @@ const userSchema = new Schema ({
         type: String,
         required: true,
         default: 'https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg'
-    },
+    }
+    ,
     isOnline: {
         type: Boolean,
         required: false,

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const userDb = require('../schemas/userSchema');
 const postDb = require('../schemas/postSchema');
 const chatDb = require('../schemas/chatSchema');
+
 let connectedUsers = [];
 
 function socketLog(socketId, message, data) {
@@ -21,28 +22,23 @@ module.exports = (server) => {
         const token = socket.handshake.auth.token;
         try {
             const data = await jwt.verify(token, process.env.JWT_SECRET);
-            let connectedUser = await userDb.findOneAndUpdate({_id: data.id},
-                {$set: {isOnline: true}},
-                {new: true});
+            let connectedUser = await userDb.findOne({_id:data.id}, {password:0});
             connectedUsers.push({userId: connectedUser._id, socketId: socket.id, username: connectedUser.username})
-            // socketLog(socket.id, 'all connected users list', connectedUsers);
-            connectedUser = await userDb.findOne({_id:data.id}, {password:0});
-            let user;
-            if(connectedUser) user =  { ...connectedUser._doc, smth: 'haha' };
-            console.log('connectedUser',user)
-            let allDbUsers = await userDb.find({}, {password: 0});
-            allDbUsers.forEach(dbUser => {
+           let allUsers = await userDb.find({}, {password: 0});
+            allUsers = allUsers.map(dbUser => {
                 let isOnline;
                 if (connectedUsers.some(user => user.username === dbUser.username)) {
                     isOnline = true;
                 } else {
                     isOnline = false;
                 }
-                return {...dbUser._doc, isOnline: isOnline};
+                const updatedUser = {...dbUser._doc, isOnline: isOnline};
+                return updatedUser;
             });
-            // console.log('allDbUsers on connection', allDbUsers);
-            allDbUsers = allDbUsers.sort((user1,user2) => user2.isOnline - user1.isOnline);
-            io.to(socket.id).emit('sendingAllUsers', allDbUsers);
+            console.log('allUsers on connection', allUsers);
+            connectedUser = allUsers.find(user => user.username === connectedUser.username);
+            allUsers = allUsers.sort((user1,user2) => user2.isOnline - user1.isOnline);
+            io.to(socket.id).emit('sendingAllUsers', allUsers);
             socket.broadcast.emit('sendingUserUpdate', connectedUser);
             let allConversations = await chatDb.find({users: connectedUser.username});
             allConversations = await Promise.all(allConversations.map(async (conversation) => {
@@ -66,7 +62,9 @@ module.exports = (server) => {
                 {_id: user.userId},
                 {$set: {profileImg: img}},
                 {new: true});
-            socket.broadcast.emit('sendingUserUpdate', user);
+            let findUser = allUsers.find(fUser => fUser.username === user.username)
+            findUser.profileImg = img;
+            socket.broadcast.emit('sendingUserUpdate', findUser);
         });
         socket.on('creatingNewPost', async newPost => {
             socketLog(socket.id, 'socekt id who send post', socket.id)
@@ -133,7 +131,8 @@ module.exports = (server) => {
             const newMessage = {
                 username: userWhoSentAMessage.username,
                 message: message,
-                time: datetime
+                time: datetime,
+                seen: false
             }
             const connectedReceiver = connectedUsers.find(user => user.username === receiver.username);
             socketLog(socket.id, 'connected receiver', connectedReceiver);
@@ -153,12 +152,22 @@ module.exports = (server) => {
                     messages: [newMessage],
                 });
                 socketLog(socket.id, 'conversation in db', newConversation);
-                newConversation.save().then(async () => {
+                newConversation.save().then( () => {
                     socketLog(socket.id, 'conversation added to Db');
-                    allConversations = await chatDb.find();
-                    socketLog(socket.id, 'all conversations from Db', allConversations);
-                    connectedReceiver ? io.to(socket.id).to(connectedReceiver.socketId).emit('sending new conversation', newConversation, newMessage) :
-                        io.to(socket.id).emit('sending new conversation', newConversation, newMessage);
+                    const conversationObj = {
+                        username: receiver.username,
+                        profileImg: receiver.profileImg,
+                        isOnline: connectedUsers.find(user=>user.username === receiver.username) ? true : false,
+                        conversationId: newConversation._id
+                    }
+                    const conversationObjToReceiver = {
+                        username: userWhoSentAMessage.username,
+                        profileImg: userWhoSentAMessage.profileImg,
+                        isOnline: connectedUsers.find(user=>user.username === userWhoSentAMessage.username) ? true : false,
+                        conversationId: newConversation._id
+                    }
+                    connectedReceiver && io.to(connectedReceiver.socketId).emit('sending new conversation', conversationObjToReceiver);
+                        io.to(socket.id).emit('sending new conversation', conversationObj);
                 }).catch(e => {
                     socketLog(socket.id, 'error while saving conversation to Db', e);
                 })
@@ -172,12 +181,11 @@ module.exports = (server) => {
         socket.on('disconnect', async () => {
             socketLog(socket.id, 'user disconnected');
             let disconnectedUser = connectedUsers.find(user => user.socketId === socket.id);
-            disconnectedUser = await userDb.findOneAndUpdate({_id: disconnectedUser.userId},
-                {$set: {isOnline: false}},
-                {new: true});
+            disconnectedUser = await userDb.findOne({_id: disconnectedUser.userId},{password: 0});
+            disconnectedUser = {...disconnectedUser._doc, isOnline: false};
             socketLog(socket.id, 'disconnectedUser after update', disconnectedUser);
             connectedUsers = connectedUsers.filter(user => user.socketId !== socket.id);
-            disconnectedUser = await userDb.findOne({_id: disconnectedUser._id}, {password:0});
+            // disconnectedUser = await userDb.findOne({_id: disconnectedUser._id}, {password:0});
             io.emit('sendingUserUpdate', disconnectedUser);
         });
     });

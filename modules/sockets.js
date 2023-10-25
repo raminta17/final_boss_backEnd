@@ -48,7 +48,8 @@ module.exports = (server) => {
                     username: name,
                     profileImg: searchUser.profileImg,
                     isOnline: connectedUsers.find(user=>user.username === name) ? true : false,
-                    conversationId: conversation._id
+                    conversationId: conversation._id,
+                    seen: conversation.messages.some(message => message?.seen === true) ? true : false
                 }
                 return conversationObj;
             }));
@@ -62,9 +63,20 @@ module.exports = (server) => {
                 {_id: user.userId},
                 {$set: {profileImg: img}},
                 {new: true});
-            let findUser = allUsers.find(fUser => fUser.username === user.username)
-            findUser.profileImg = img;
-            socket.broadcast.emit('sendingUserUpdate', findUser);
+          try {
+              user = await userDb.findOne({_id: user._id}, {password:0})
+              let isOnline;
+              if (user && connectedUsers.some(fUser => fUser.username === user.username)) {
+                  isOnline = true;
+              } else {
+                  isOnline = false;
+              }
+              console.log('user', user);
+              const updatedUser = {...user._doc, isOnline: isOnline};
+              socket.broadcast.emit('sendingUserUpdate', updatedUser);
+          }  catch (err) {
+              socketLog(socket.id, 'error updating user', err);
+          };
         });
         socket.on('creatingNewPost', async newPost => {
             socketLog(socket.id, 'socekt id who send post', socket.id)
@@ -158,13 +170,15 @@ module.exports = (server) => {
                         username: receiver.username,
                         profileImg: receiver.profileImg,
                         isOnline: connectedUsers.find(user=>user.username === receiver.username) ? true : false,
-                        conversationId: newConversation._id
+                        conversationId: newConversation._id,
+                        seen: true
                     }
                     const conversationObjToReceiver = {
                         username: userWhoSentAMessage.username,
                         profileImg: userWhoSentAMessage.profileImg,
                         isOnline: connectedUsers.find(user=>user.username === userWhoSentAMessage.username) ? true : false,
-                        conversationId: newConversation._id
+                        conversationId: newConversation._id,
+                        seen: false
                     }
                     connectedReceiver && io.to(connectedReceiver.socketId).emit('sending new conversation', conversationObjToReceiver);
                         io.to(socket.id).emit('sending new conversation', conversationObj);

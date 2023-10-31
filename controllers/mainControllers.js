@@ -18,7 +18,6 @@ module.exports = {
             password: hash
         });
         user.save().then(() => {
-            console.log('player added to Db');
             resSend(res, false, null, 'registration success');
         }).catch(e => {
             console.log('error while saving player to Db', e);
@@ -31,8 +30,7 @@ module.exports = {
         const findUser = await userDb.findOne({username}, {password: 0});
         const user = {
             id: findUser._id,
-            username,
-            monster: findUser.monster
+            username
         }
         const token = jwt.sign(user, process.env.JWT_SECRET);
         resSend(res, false, {token, findUser}, 'login success');
@@ -60,7 +58,6 @@ module.exports = {
     getPostAuthor: async (req,res) => {
         const {id} = req.params;
         const author = await userDb.findOne({_id: id}, {password:0, socketId:0})
-        console.log('author', author);
         resSend(res, false, author, 'Sending post author info through fetch');
     },
 }

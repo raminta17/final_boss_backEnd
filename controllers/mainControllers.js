@@ -4,7 +4,6 @@ const resSend = (res, error, data, message) => {
 
 const userDb = require('../schemas/userSchema');
 const postDb = require('../schemas/postSchema');
-const chatDb = require('../schemas/chatSchema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -50,14 +49,14 @@ module.exports = {
         )
         resSend(res, false, null, 'Password changed successfully.');
     },
-    getAllPosts: async (req,res) => {
+    getAllPosts: async (req, res) => {
         let allPosts = await postDb.find();
-        allPosts = allPosts.slice().sort((post1,post2) => (post2.time - post1.time));
+        allPosts = allPosts.slice().sort((post1, post2) => (post2.time - post1.time));
         resSend(res, false, allPosts, 'Sending all posts from fetch');
     },
-    getPostAuthor: async (req,res) => {
+    getPostAuthor: async (req, res) => {
         const {id} = req.params;
-        const author = await userDb.findOne({_id: id}, {password:0, socketId:0})
+        const author = await userDb.findOne({_id: id}, {password: 0, socketId: 0})
         resSend(res, false, author, 'Sending post author info through fetch');
     },
 }

@@ -16,7 +16,6 @@ mongoose.connect(process.env.DB_KEY)
     console.log('error while connecting to DB', e)
 })
 
-
 app.use(cors());
 app.use(express.json());
 app.use('/', router)

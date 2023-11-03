@@ -15,12 +15,6 @@ const userSchema = new Schema ({
         required: true,
         default: 'https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg'
     }
-    // ,
-    // isOnline: {
-    //     type: Boolean,
-    //     required: false,
-    //     default: false
-    // }
 })
 
 const user = mongoose.model('users', userSchema);

@@ -10,10 +10,8 @@ const {register,
     getUserInfo,
     changePassword,
     getAllPosts,
-    getPostAuthor,
-    getAllConversations
+    getPostAuthor
    } = require('../controllers/mainControllers')
-
 
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
@@ -21,6 +19,5 @@ router.get('/getUserInfo', validateToken, getUserInfo);
 router.post('/changePassword', validateToken, validatePassChange, changePassword);
 router.get('/getAllPosts', getAllPosts);
 router.get('/getPostAuthor/:id', getPostAuthor);
-
 
 module.exports = router;

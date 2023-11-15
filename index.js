@@ -20,6 +20,12 @@ index.use(cors({
     origin: 'https://final-boss-front-end.vercel.app/',
     method: 'GET'
 }));
+index.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', '*');
+
+    next();
+});
 index.use(express.json());
 index.use('/', router)
 

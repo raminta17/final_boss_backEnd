@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const port = 8000;
 const router = require('./routers/mainRouters');
 const {createServer} = require('node:http');
+const {get} = require("mongoose");
 const server = createServer(index);
 require('./modules/sockets')(server);
 require('dotenv').config();
@@ -16,10 +17,13 @@ mongoose.connect(process.env.DB_KEY)
     console.log('error while connecting to DB', e)
 })
 
-index.use(cors({origin: 'https://final-boss-front-end.vercel.app/'}));
+index.use(cors({
+    origin: 'https://final-boss-front-end.vercel.app/',
+    method: 'GET'
+}));
 index.use(express.json());
 index.use('/', router)
 
 server.listen(port, () => {
-    console.log('server running on localhost:'+port);
+    console.log('server running on localhost:' + port);
 });

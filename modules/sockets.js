@@ -13,7 +13,8 @@ function socketLog(socketId, message, data) {
 module.exports = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: 'https://final-boss-front-end.vercel.app/'
+            origin: 'https://final-boss-front-end.vercel.app/',
+            methods: ['GET', 'POST'],
         }
     });
     io.on('connection', async (socket) => {

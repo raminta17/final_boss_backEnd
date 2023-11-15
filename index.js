@@ -16,16 +16,14 @@ mongoose.connect(process.env.DB_KEY)
     console.log('error while connecting to DB', e)
 })
 
-index.use(cors({
-    origin: 'https://final-boss-front-end.vercel.app/',
-    method: 'GET'
-}));
-index.use((_req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', '*');
 
-    next();
-});
+index.use(cors({
+    origin: 'https://final-boss-front-end.vercel.app',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+    optionsSuccessStatus: 204,
+}));
+
 index.use(express.json());
 index.use('/', router)
 

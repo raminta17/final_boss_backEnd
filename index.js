@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const app = express();
+const index = express();
 const mongoose = require('mongoose');
 const port = 8000;
 const router = require('./routers/mainRouters');
 const {createServer} = require('node:http');
-const server = createServer(app);
+const server = createServer(index);
 require('./modules/sockets')(server);
 require('dotenv').config();
 
@@ -16,9 +16,9 @@ mongoose.connect(process.env.DB_KEY)
     console.log('error while connecting to DB', e)
 })
 
-app.use(cors());
-app.use(express.json());
-app.use('/', router)
+index.use(cors());
+index.use(express.json());
+index.use('/', router)
 
 server.listen(port, () => {
     console.log('server running on localhost:'+port);

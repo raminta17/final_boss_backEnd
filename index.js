@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const port = 8000;
 const router = require('./routers/mainRouters');
 const {createServer} = require('node:http');
-const {get} = require("mongoose");
 const server = createServer(index);
 require('./modules/sockets')(server);
 require('dotenv').config();

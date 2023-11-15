@@ -16,7 +16,7 @@ mongoose.connect(process.env.DB_KEY)
     console.log('error while connecting to DB', e)
 })
 
-index.use(cors({origin: 'http://localhost:3000'}));
+index.use(cors({origin: 'https://final-boss-front-end.vercel.app/'}));
 index.use(express.json());
 index.use('/', router)
 
